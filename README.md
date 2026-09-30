@@ -1,4 +1,66 @@
 <!-- mcp-name: io.github.oxbshw/watch-skill -->
+> **Watch-LM fork:** This repository preserves the upstream Watch Skill engine and adds [`/watch-lm`](skills/watch-lm/SKILL.md), an agent skill that combines Watch's visual evidence with a project-specific NotebookLM notebook. It is a template, not a preconfigured access to anyone's Google account. The original Watch Skill documentation continues below.
+
+## Watch-LM: install and use
+
+`/watch-lm` is an **agent skill**, not a new standalone MCP server. It requires the Watch Skill CLI/MCP and a separate, authenticated NotebookLM-compatible MCP connection in the agent. No NotebookLM credentials or notebook IDs are bundled.
+
+### 1. Install the Watch engine and skill
+
+Requirements: Python 3.11+, `git`, and an MCP-capable agent. Install the engine from the published package, then the forked skill:
+
+```bash
+pipx install 'watch-skill[standard,ocr,whisper]'
+watch-skill doctor --json
+git clone https://github.com/andreasTimo/Watch-lm.git
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills/watch-lm"
+cp Watch-lm/skills/watch-lm/SKILL.md "${CODEX_HOME:-$HOME/.codex}/skills/watch-lm/SKILL.md"
+```
+
+If you already have `watch-skill`, keep its working installation instead of overwriting it. For Codex, register the Watch MCP only if it is not already configured:
+
+```bash
+codex mcp add watch-skill -- watch-skill serve
+```
+
+Restart Codex so the newly installed skill appears as `/watch-lm`. Other skill-compatible agents can install the same `skills/watch-lm` folder in their own skills directory.
+
+### 2. Connect NotebookLM
+
+Configure a NotebookLM-compatible MCP server separately in your agent and sign in to **your own** account. This fork does **not** ship or endorse a particular unofficial NotebookLM MCP implementation. The integration needs these capabilities: list/create notebooks, add URL or text/file sources, query a notebook, and create notes. Tool names may differ by server; adapt the skill if necessary. Until both MCP connections are available, `/watch-lm` can save local evidence but cannot upload or query NotebookLM.
+
+### 3. Bind one project to one notebook
+
+Create a notebook in NotebookLM or choose an existing one, then run from this cloned repository:
+
+```bash
+python3 scripts/init_watch_lm_project.py \
+  --project-root /path/to/your-project \
+  --project "Example Project" \
+  --notebook-id <your-notebook-uuid>
+```
+
+The script writes `/path/to/your-project/.watch-lm/notebook.json` and a local `.gitignore` that excludes the notebook mapping and evidence runs. It refuses to replace a different notebook mapping. The UUID in this example is a placeholder; **do not commit or publish your real mapping, credentials, cookies, transcripts, or private video frames**.
+
+### 4. Invoke the skill
+
+In the bound project, ask your agent:
+
+```text
+/watch-lm https://www.youtube.com/watch?v=EXAMPLE Learn the demonstrated editing workflow, preserve evidence, and draft a reusable skill spec.
+```
+
+The agent records local frame/transcript evidence first, asks before sending it to NotebookLM, queries only the mapped notebook, and writes a labeled `spec.md` with confirmed, single-source, and conflicting claims. A generated skill is not considered verified until tested on a real input. NotebookLM's YouTube import is transcript-based, so Watch remains necessary for on-screen steps. See [mapping details](references/notebooklm-project.md).
+
+### Privacy and scope
+
+- One project maps to one notebook; a new tutorial does not create another notebook automatically.
+- No video, local evidence, or credentials are uploaded merely by installing the fork.
+- The Watch engine remains local-first. Uploads to NotebookLM happen only during an explicitly approved `/watch-lm` run.
+- This fork has **not** been published to PyPI or npm as a separate package. The install instructions above install upstream's published Watch engine plus this fork's agent skill.
+
+---
+
 <div align="center">
 
 <img src="docs/assets/watch-skill-hero.webp" alt="Watch Skill: a pixel-art scene of the Watch Skill mascot watching a screen. A filmstrip above shows the four stages — watch a source, remember it as OCR and transcript, resolve timestamped evidence, then run THE LOOP to critique and fix. The screen shows a video library, an evidence list with timestamps, and a capture-critique-fix-verify cycle ending in VERIFIED." width="760">
